@@ -1,0 +1,118 @@
+<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>เกมเศรษฐี</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#e9efe6;--ink:#1d2a22}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141a;--ink:#e8eef5}}
+:root[data-theme="dark"]{--bg:#10141a;--ink:#e8eef5}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'Prompt','Sarabun',system-ui,sans-serif;transition:background .3s}
+#app{display:flex;flex-wrap:wrap;gap:12px;padding:10px;max-width:1180px;margin:auto}
+#bw{flex:1 1 480px;max-width:740px}
+#board{display:grid;grid-template:repeat(11,1fr)/repeat(11,1fr);aspect-ratio:1;background:var(--board);border:3px solid var(--ink);border-radius:12px;overflow:hidden;font-size:clamp(5px,1.3vw,10px)}
+.t{border:1px solid var(--ln);background:var(--tile);position:relative;display:flex;flex-direction:column;text-align:center;line-height:1.1;overflow:hidden;cursor:pointer;min-width:0}
+.t .bar{height:24%;font-size:.8em;color:#0009;display:flex;align-items:center;justify-content:center}
+.t .nm{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1px}
+.t .pr{opacity:.7;padding-bottom:1px}.t.mo{opacity:.45;background:repeating-linear-gradient(45deg,var(--tile),var(--tile) 4px,var(--ln) 4px,var(--ln) 5px)}
+.tk{position:absolute;bottom:1px;left:1px;right:1px;display:flex;flex-wrap:wrap;gap:1px;justify-content:center}
+.tk i{width:clamp(7px,1.7vw,15px);aspect-ratio:1;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0007}
+#ctr{grid-area:2/2/11/11;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2vw;font-size:clamp(10px,2vw,16px)}
+#ctr h1{margin:0;font-size:2.6em;letter-spacing:1px}.dice{font-size:5em;line-height:1}
+#side{flex:1 1 290px;max-width:430px;display:flex;flex-direction:column;gap:10px}
+.card{background:var(--pane);border:1px solid var(--ln);border-radius:12px;padding:12px}
+.btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.b{padding:9px 13px;border-radius:9px;border:1px solid transparent;background:var(--acc);color:#fff;font:inherit;cursor:pointer}
+.b.g{background:transparent;color:var(--ink);border-color:var(--ln)}.b:disabled{opacity:.35;cursor:default}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:middle}
+.pr2{padding:5px 0;border-bottom:1px solid var(--ln)}.pr2 span{float:right}.pr2.out{opacity:.35;text-decoration:line-through}
+.ch{display:flex;gap:3px;flex-wrap:wrap;margin-top:3px}.ch u{width:14px;height:10px;border-radius:2px;display:block;text-decoration:none}
+.log{font-size:13px;max-height:150px;overflow:auto}.log div{padding:2px 0;opacity:.85}
+#md{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:12px;z-index:9}
+#md>div{background:var(--pane);color:var(--ink);border-radius:14px;padding:16px;max-width:540px;width:100%;max-height:88vh;overflow:auto}
+.row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--ln)}.row .b{padding:5px 8px;font-size:13px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.ck{display:block;font-size:14px;padding:2px 0}
+.in{padding:7px;border-radius:8px;border:1px solid var(--ln);background:transparent;color:var(--ink);font:inherit;width:calc(100% - 22px);margin:3px 0}
+select.in{width:auto}h3{margin:0 0 8px}
+</style></head><body><div id="app"></div><div id="md"></div>
+<script>
+const $=s=>document.querySelector(s),sl=ms=>new Promise(r=>setTimeout(r,ms));
+const COL=['#e63946','#2a9d8f','#f4a261','#6a4c93','#1d70e6','#8ac926'];
+const P={1:[60,0],3:[60,0],5:[200,'s'],6:[100,1],8:[100,1],9:[120,1],11:[140,2],12:[150,'u'],13:[140,2],14:[160,2],15:[200,'s'],16:[180,3],18:[180,3],19:[200,3],21:[220,4],23:[220,4],24:[240,4],25:[200,'s'],26:[260,5],27:[260,5],28:[150,'u'],29:[280,5],31:[300,6],32:[300,6],34:[320,6],35:[200,'s'],37:[350,7],39:[400,7]};
+const PI=Object.keys(P).map(Number),G=[0,1,2,3,4,5,6,7].map(g=>PI.filter(i=>P[i][1]===g));
+const SP={0:['🏁','เริ่มต้น'],2:['🎁','การ์ดชุมชน'],4:['💸','ภาษี ฿200'],7:['❓','การ์ดโชค'],10:['⛓️','คุก'],17:['🎁','การ์ดชุมชน'],20:['🅿️','จอดฟรี'],22:['❓','การ์ดโชค'],30:['👮','เข้าคุก'],33:['🎁','การ์ดชุมชน'],36:['❓','การ์ดโชค'],38:['💸','ภาษี ฿100']};
+const TH=[
+{n:'🎩 คลาสสิก',v:{'--bg':'#e9efe6','--board':'#cfe6d2','--tile':'#fffdf5','--ink':'#1d2a22','--pane':'#fff','--acc':'#c8372d','--ln':'#0004'},g:['#955436','#aae0fa','#d93a96','#f7941d','#ed1b24','#fef200','#1fb25a','#0072bb'],nm:['เมดิเตอร์เรเนียน','บอลติก','รีดดิ้ง RR','โอเรียนทัล','เวอร์มอนต์','คอนเนตทิคัต','เซนต์ชาร์ลส์','การไฟฟ้า','สเตทส์','เวอร์จิเนีย','เพนน์ RR','เซนต์เจมส์','เทนเนสซี','นิวยอร์ก','เคนทักกี','อินเดียนา','อิลลินอยส์','B&O RR','แอตแลนติก','เวนทนอร์','การประปา','มาร์วิน','แปซิฟิก','นอร์ทแคโรไลนา','เพนซิลเวเนีย','ชอร์ตไลน์','พาร์คเพลส','บอร์ดวอล์ก']},
+{n:'🛕 ไทย',v:{'--bg':'#fbe9c8','--board':'#f6d9a0','--tile':'#fff8e6','--ink':'#4a1d1d','--pane':'#fffaf0','--acc':'#b8232f','--ln':'#4a1d1d44'},g:['#8b5a2b','#4fb3bf','#e2559a','#ff8c1a','#c8102e','#ffc72c','#00875a','#2b3a8f'],nm:['ตลาดน้อย','บางลำพู','BTS สยาม','ข้าวสาร','สามเสน','ประตูน้ำ','จตุจักร','การไฟฟ้า','อารีย์','ทองหล่อ','MRT สุขุมวิท','เอกมัย','ท่าพระจันทร์','สีลม','สาทร','พระราม 9','รัชดา','ARL พญาไท','ไอคอนสยาม','เซ็นทรัลเวิลด์','การประปา','สยามพารากอน','วัดโพธิ์','วัดอรุณ','พระบรมมหาราชวัง','สุวรรณภูมิ','เกาะสมุย','ภูเก็ต']},
+{n:'🌍 เมืองโลก',v:{'--bg':'#dfeaf7','--board':'#bfd7ef','--tile':'#fff','--ink':'#12263f','--pane':'#fff','--acc':'#1b6ec2','--ln':'#12263f44'},g:['#7a5c3e','#5ec2d6','#c45ab3','#f08a24','#e0453a','#f2c94c','#3aa86b','#2f5fd0'],nm:['ไคโร','มุมไบ','ฮีทโธรว์','บาหลี','ฮานอย','อิสตันบูล','ซิดนีย์','โรงไฟฟ้า','โซล','เซี่ยงไฮ้','ชางงี','มาดริด','โรม','ปารีส','เบอร์ลิน','อัมสเตอร์ดัม','ลอนดอน','ดูไบ','โตเกียว','สิงคโปร์','โรงประปา','ฮ่องกง','ริโอ','ซานฟรานฯ','ลอสแอนเจลิส','JFK','นิวยอร์ก','ลาสเวกัส']},
+{n:'🌃 นีออน',v:{'--bg':'#0b0b1a','--board':'#12122b','--tile':'#1a1a3a','--ink':'#e8e8ff','--pane':'#16163a','--acc':'#ff2e93','--ln':'#7a7aff55'},g:['#ff7a00','#00e5ff','#ff2e93','#ffe600','#ff3b3b','#b6ff00','#00ff9c','#8c52ff'],nm:['Pixel','Glitch','Hub-A','Byte','Vector','Cache','Nova','Power','Pulse','Laser','Hub-B','Orbit','Quantum','Photon','Flux','Matrix','Cyber','Hub-C','Neon','Aqua','Water','Zenith','Turbo','Apex','Echo','Hub-D','Omega','Titan']}];
+const CH=[['ไปที่จุดเริ่มต้น รับ ฿200','g',0],['เดินทางไปตำแหน่ง 24','g',24],['เดินทางไปตำแหน่ง 39','g',39],['ถอยหลัง 3 ช่อง','b',3],['ถูกจับเข้าคุก!','j'],['ปันผลหุ้น +฿50','m',50],['ค่าปรับจราจร -฿15','m',-15],['ซ่อมแซมบ้าน -฿100','m',-100]];
+const CC=[['ถูกรางวัลที่ 1 +฿100','m',100],['ค่ารักษาพยาบาล -฿50','m',-50],['วันเกิด! ทุกคนให้คนละ ฿10','e',10],['คืนภาษี +฿20','m',20],['ค่าเทอมลูก -฿100','m',-100],['ขายของมือสอง +฿45','m',45],['ถูกจับเข้าคุก!','j'],['ไปพักที่จุดจอดฟรี','g',20]];
+let cfg={np:3,names:[],th:0,cash:1500},S=null;
+const T=()=>TH[cfg.th],nm=i=>P[i]?T().nm[PI.indexOf(i)]:SP[i][1],num=g=>typeof g=='number',hc=g=>50*(1+(g>>1)),bs=p=>Math.round(p/16);
+const kind=i=>[7,22,36].includes(i)?'c':[2,17,33].includes(i)?'h':[4,38].includes(i)?'x':'';
+const xy=i=>i<=10?[11,11-i]:i<=20?[21-i,1]:i<=30?[1,i-19]:[i-29,11];
+const full=(g,o)=>G[g].every(j=>S.own[j]==o),log=t=>{S.log.push(t)};
+const modal=h=>{$('#md').innerHTML='<div>'+h+'</div>';$('#md').style.display='flex'},closeM=()=>{$('#md').style.display='none'};
+const X='<button class="b g" onclick="closeM()">ปิด</button>';
+function applyT(){for(const[k,v]of Object.entries(T().v))document.body.style.setProperty(k,v)}
+function saveN(){for(let i=0;i<cfg.np;i++){const e=$('#n'+i);if(e)cfg.names[i]=e.value}}
+function rSetup(){applyT();$('#app').innerHTML=`<div class="card" style="max-width:560px;margin:20px auto;width:100%"><h1 style="margin:0 0 6px">🎲 เกมเศรษฐี</h1><small>เล่นหลายคนในเครื่องเดียว ผลัดกันทอยเต๋า • กติกาเต็ม</small><h3 style="margin-top:14px">จำนวนผู้เล่น</h3>${[2,3,4,5,6].map(n=>`<button class="b ${cfg.np==n?'':'g'}" onclick="saveN();cfg.np=${n};rSetup()">${n}</button>`).join(' ')}<h3 style="margin-top:14px">ชื่อผู้เล่น</h3>${Array.from({length:cfg.np},(_,i)=>`<div><i class="dot" style="background:${COL[i]}"></i> <input class="in" id="n${i}" value="${cfg.names[i]||'ผู้เล่น '+(i+1)}"></div>`).join('')}<h3 style="margin-top:14px">ธีมกระดาน</h3>${TH.map((t,i)=>`<button class="b ${cfg.th==i?'':'g'}" onclick="saveN();cfg.th=${i};rSetup()">${t.n}</button>`).join(' ')}<h3 style="margin-top:14px">เงินเริ่มต้น</h3>${[1000,1500,2500].map(n=>`<button class="b ${cfg.cash==n?'':'g'}" onclick="saveN();cfg.cash=${n};rSetup()">฿${n}</button>`).join(' ')}<br><br><button class="b" style="width:100%;font-size:1.1em" onclick="start()">เริ่มเกม ▶</button></div>`}
+function start(){saveN();S={pl:Array.from({length:cfg.np},(_,i)=>({n:cfg.names[i]||'ผู้เล่น '+(i+1),c:COL[i],m:cfg.cash,p:0,jail:0,jt:0,out:0})),own:{},lvl:Object.fromEntries(PI.map(i=>[i,0])),mort:{},cur:0,canRoll:1,dbl:0,die:[1,1],log:['เริ่มเกม!'],busy:0};$('#app').innerHTML='<div id="bw"><div id="board"></div></div><div id="side"></div>';render()}
+function toSetup(){S=null;rSetup()}
+function rent(i,roll){const[p,g]=P[i],o=S.own[i],n=(t)=>PI.filter(j=>P[j][1]==t&&S.own[j]==o&&!S.mort[j]).length;
+if(g=='s')return 25*2**(n('s')-1);if(g=='u')return roll*(n('u')>1?10:4);
+const l=S.lvl[i];let r=bs(p)*[1,5,15,45,62,75][l];if(!l&&full(g,o))r*=2;return r}
+function rBoard(){let h='';for(let i=0;i<40;i++){const[r,c]=xy(i),p=P[i],o=S.own[i],pc=S.pl.filter(q=>!q.out&&q.p==i).map(q=>`<i style="background:${q.c}"></i>`).join('');let bar='',ic='';
+if(p){if(num(p[1]))bar=`<div class="bar" style="background:${T().g[p[1]]}">${S.lvl[i]==5?'🏨':'🏠'.repeat(S.lvl[i])}</div>`;else ic=p[1]=='s'?'🚉':'💡'}else ic=SP[i][0];
+h+=`<div class="t ${S.mort[i]?'mo':''}" onclick="info(${i})" style="grid-row:${r};grid-column:${c};${o!=null?`box-shadow:inset 0 -5px 0 ${S.pl[o].c}`:''}">${bar}<div class="nm"><span>${ic}</span>${nm(i)}</div>${p?`<div class="pr">฿${p[0]}</div>`:''}<div class="tk">${pc}</div></div>`}
+const d=n=>String.fromCharCode(9855+n);
+return h+`<div id="ctr"><h1>เศรษฐี</h1><div class="dice">${d(S.die[0])}${d(S.die[1])}</div><div>${T().n}</div></div>`}
+function rSide(){const p=S.pl[S.cur],B=(t,f,d,c='')=>`<button class="b ${c}" ${d?'disabled':''} onclick="${f}">${t}</button>`,z=S.busy;
+return `<div class="card"><div style="display:flex;align-items:center;gap:8px"><i class="dot" style="background:${p.c}"></i><b style="font-size:1.2em">${p.n}</b><span style="margin-left:auto;font-size:1.2em">฿${p.m.toLocaleString()}</span></div><div class="btns">${B('🎲 ทอยเต๋า','roll()',z||!S.canRoll||p.m<0)}${p.jail?B('จ่าย ฿50 ออกคุก','payJ()',z||!S.canRoll||p.m<50,'g'):''}${B('🏠 จัดการที่ดิน','manage()',z,'g')}${B('🤝 แลกเปลี่ยน','tradeM()',z,'g')}${B('จบเทิร์น ➜','nextT()',z||S.canRoll||p.m<0)}${p.m<0?B('💥 ล้มละลาย','bank()',0):''}</div>${p.jail?'<small>🔒 อยู่ในคุก ทอยคู่เพื่อออก (ครบ 3 เทิร์นจ่าย ฿50)</small>':''}</div>
+<div class="card">${S.pl.map((q,j)=>`<div class="pr2 ${q.out?'out':''}"><i class="dot" style="background:${q.c}"></i> <b>${q.n}</b>${j==S.cur&&!q.out?' ◀':''}<span>฿${q.m.toLocaleString()}</span><div class="ch">${PI.filter(i=>S.own[i]==j).map(i=>`<u title="${nm(i)}" style="background:${num(P[i][1])?T().g[P[i][1]]:'#888'};${S.mort[i]?'opacity:.3':''}"></u>`).join('')}</div></div>`).join('')}</div>
+<div class="card log">${S.log.slice(-7).reverse().map(t=>`<div>${t}</div>`).join('')}</div>
+<div><select class="in" onchange="cfg.th=+this.value;applyT();render()">${TH.map((t,i)=>`<option value="${i}" ${cfg.th==i?'selected':''}>${t.n}</option>`).join('')}</select> <button class="b g" onclick="if(confirm('เริ่มเกมใหม่?'))toSetup()">เริ่มใหม่</button></div>`}
+function render(){if(!S)return;$('#board').innerHTML=rBoard();$('#side').innerHTML=rSide()}
+function pay(f,t,a){S.pl[f].m-=a;if(t!=null)S.pl[t].m+=a;if(S.pl[f].m<0)log('⚠ '+S.pl[f].n+' เงินไม่พอ! ขายบ้าน/จำนอง หรือประกาศล้มละลาย')}
+async function roll(){if(S.busy||!S.canRoll)return;const p=S.pl[S.cur],a=1+Math.random()*6|0,b=1+Math.random()*6|0,d=a==b;S.die=[a,b];S.busy=1;log(`${p.n} ทอยได้ ${a}+${b}`);
+if(p.jail){if(d){p.jail=0;log('ทอยคู่! ออกจากคุก');S.canRoll=0}else if(++p.jt>=3){p.jail=0;pay(S.cur,null,50);log('ครบ 3 เทิร์น จ่าย ฿50');S.canRoll=0}else{S.canRoll=0;S.busy=0;render();return}}
+else if(d){if(++S.dbl>=3){log('ทอยคู่ 3 ครั้งติด!');goJail();S.busy=0;return}S.canRoll=1}else S.canRoll=0;
+await move(a+b);S.busy=0;render()}
+async function move(k){const p=S.pl[S.cur];for(let s=0;s<k;s++){p.p=(p.p+1)%40;if(!p.p){p.m+=200;log(p.n+' ผ่านจุดเริ่มต้น +฿200')}render();await sl(110)}land()}
+function land(){const p=S.pl[S.cur],i=p.p,k=P[i]?'p':kind(i);
+if(k=='p'){const o=S.own[i];if(o==null)return buyM(i);if(o!=S.cur&&!S.mort[i]){const r=rent(i,S.die[0]+S.die[1]);log(`${p.n} จ่ายค่าเช่า ฿${r} ให้ ${S.pl[o].n}`);pay(S.cur,o,r)}}
+else if(k=='x'){const a=i==4?200:100;log(`${p.n} จ่ายภาษี ฿${a}`);pay(S.cur,null,a)}
+else if(i==30){log(p.n+' ถูกจับเข้าคุก!');return goJail()}else if(k)return cardM(k);render()}
+function goJail(){const p=S.pl[S.cur];p.p=10;p.jail=1;p.jt=0;S.canRoll=0;S.dbl=0;render()}
+function payJ(){const p=S.pl[S.cur];pay(S.cur,null,50);p.jail=0;log(p.n+' จ่าย ฿50 ออกจากคุก');render()}
+function buyM(i){const p=S.pl[S.cur],g=P[i][1];modal(`<h3>${num(g)?`<i class="dot" style="background:${T().g[g]}"></i> `:''}${nm(i)}</h3><p>ราคา <b>฿${P[i][0]}</b> • เงินคุณ ฿${p.m}</p><button class="b" ${p.m<P[i][0]?'disabled':''} onclick="buy(${i})">ซื้อ</button> <button class="b g" onclick="auc(${i})">🔨 ประมูล</button>`)}
+function buy(i){const p=S.pl[S.cur];p.m-=P[i][0];S.own[i]=S.cur;log(`${p.n} ซื้อ ${nm(i)}`);closeM();render()}
+function cardM(k){const d=k=='c'?CH:CC;S.cd=d[Math.random()*d.length|0];modal(`<h3>${k=='c'?'❓ การ์ดโชค':'🎁 การ์ดชุมชน'}</h3><p style="font-size:1.15em">${S.cd[0]}</p><button class="b" onclick="cardOk()">ตกลง</button>`)}
+function cardOk(){closeM();const c=S.cd,p=S.pl[S.cur],t=c[1];log(`${p.n}: ${c[0]}`);
+if(t=='m'){c[2]<0?pay(S.cur,null,-c[2]):p.m+=c[2];render()}
+else if(t=='e'){S.pl.forEach((q,j)=>{if(j!=S.cur&&!q.out)pay(j,S.cur,c[2])});render()}
+else if(t=='j')goJail();
+else if(t=='g'){if(c[2]<p.p)p.m+=200;p.p=c[2];render();land()}
+else{p.p=(p.p+37)%40;render();land()}}
+function auc(i){const act=S.pl.map((q,j)=>j).filter(j=>!S.pl[j].out);S.au={i,bid:0,who:null,act,t:0};aucM()}
+function aucM(){const a=S.au,q=S.pl[a.act[a.t]];modal(`<h3>🔨 ประมูล ${nm(a.i)}</h3><p>ราคาตลาด ฿${P[a.i][0]} • สูงสุด <b>฿${a.bid}</b> ${a.who!=null?'โดย '+S.pl[a.who].n:''}</p><p>ตาของ <b style="color:${q.c}">${q.n}</b> (฿${q.m})</p>`+[10,50,100].map(x=>`<button class="b" ${q.m<a.bid+x?'disabled':''} onclick="bid(${x})">+${x} → ฿${a.bid+x}</button>`).join(' ')+' <button class="b g" onclick="aPass()">ถอนตัว</button>')}
+function bid(x){const a=S.au;a.bid+=x;a.who=a.act[a.t];a.t=(a.t+1)%a.act.length;aEnd()}
+function aPass(){const a=S.au;a.act.splice(a.t,1);if(a.t>=a.act.length)a.t=0;aEnd()}
+function aEnd(){const a=S.au;if(!a.act.length||(a.act.length==1&&a.who!=null)){if(a.who!=null){const q=S.pl[a.who];q.m-=a.bid;S.own[a.i]=a.who;log(`${q.n} ชนะประมูล ${nm(a.i)} ที่ ฿${a.bid}`)}else log('ไม่มีใครประมูล');closeM();render()}else aucM()}
+function nextT(){let n=S.cur;do n=(n+1)%S.pl.length;while(S.pl[n].out);S.cur=n;S.canRoll=1;S.dbl=0;render()}
+function bank(){const p=S.pl[S.cur];PI.forEach(i=>{if(S.own[i]==S.cur){S.own[i]=null;S.lvl[i]=0;S.mort[i]=0}});p.out=1;p.m=0;log(p.n+' ล้มละลาย! ที่ดินกลับสู่ธนาคาร');const al=S.pl.filter(q=>!q.out);if(al.length==1){render();return modal(`<h2>🏆 ${al[0].n} ชนะเกม!</h2><button class="b" onclick="closeM();toSetup()">เล่นใหม่</button>`)}nextT()}
+const canB=i=>{const g=P[i][1],o=S.own[i];if(!num(g)||S.lvl[i]>=5||!full(g,o)||G[g].some(j=>S.mort[j]))return 0;return S.lvl[i]<=Math.min(...G[g].map(j=>S.lvl[j]))&&S.pl[o].m>=hc(g)};
+const canS=i=>{const g=P[i][1];return num(g)&&S.lvl[i]>0&&S.lvl[i]>=Math.max(...G[g].map(j=>S.lvl[j]))};
+const clean=i=>!num(P[i][1])||G[P[i][1]].every(j=>!S.lvl[j]);
+function manage(){const c=S.cur,q=S.pl[c],my=PI.filter(i=>S.own[i]==c);
+modal(`<h3>🏠 ที่ดินของ ${q.n} • ฿${q.m.toLocaleString()}</h3>`+(my.map(i=>{const g=P[i][1],m=S.mort[i];return `<div class="row"><i class="dot" style="background:${num(g)?T().g[g]:'#888'}"></i><b>${nm(i)}</b><small>${m?'(จำนอง)':num(g)&&S.lvl[i]?(S.lvl[i]==5?'🏨':'🏠'.repeat(S.lvl[i])):''}</small><span style="flex:1"></span>${num(g)?`<button class="b" ${canB(i)?'':'disabled'} onclick="act('b',${i})">+บ้าน ฿${hc(g)}</button><button class="b g" ${canS(i)?'':'disabled'} onclick="act('s',${i})">ขาย +฿${hc(g)/2}</button>`:''}<button class="b g" ${m?(q.m>=Math.ceil(P[i][0]*.55)?'':'disabled'):(clean(i)?'':'disabled')} onclick="act('m',${i})">${m?'ไถ่ถอน ฿'+Math.ceil(P[i][0]*.55):'จำนอง +฿'+P[i][0]/2}</button></div>`}).join('')||'ยังไม่มีที่ดิน')+'<br>'+X)}
+function act(t,i){const q=S.pl[S.cur],g=P[i][1];if(t=='b'){q.m-=hc(g);S.lvl[i]++}else if(t=='s'){q.m+=hc(g)/2;S.lvl[i]--}else if(S.mort[i]){q.m-=Math.ceil(P[i][0]*.55);S.mort[i]=0}else{q.m+=P[i][0]/2;S.mort[i]=1}render();manage()}
+function tradeM(b){const a=S.cur;if(b==null)return modal('<h3>🤝 แลกเปลี่ยน — เลือกคู่เทรด</h3>'+S.pl.map((q,j)=>!q.out&&j!=a?`<button class="b" style="background:${q.c}" onclick="tradeM(${j})">${q.n}</button> `:'').join('')+'<br><br>'+X);
+const lst=(o,t)=>PI.filter(i=>S.own[i]==o&&clean(i)).map(i=>`<label class="ck"><input type="checkbox" data-s="${t}" data-i="${i}"> ${nm(i)}${S.mort[i]?' (จำนอง)':''}</label>`).join('')||'<small>ไม่มี (ที่ดินที่มีบ้านแลกไม่ได้)</small>';
+modal(`<h3>${S.pl[a].n} ⇄ ${S.pl[b].n}</h3><div class="cols"><div><b>${S.pl[a].n} ให้</b>${lst(a,'a')}<input class="in" type="number" id="ca" min="0" value="0"> ฿</div><div><b>${S.pl[b].n} ให้</b>${lst(b,'b')}<input class="in" type="number" id="cb" min="0" value="0"> ฿</div></div><button class="b" onclick="doTrade(${a},${b})">ตกลงแลกเปลี่ยน</button> `+X)}
+function doTrade(a,b){const ca=Math.max(0,+$('#ca').value||0),cb=Math.max(0,+$('#cb').value||0);if(ca>S.pl[a].m||cb>S.pl[b].m)return alert('เงินไม่พอ');
+document.querySelectorAll('#md input[type=checkbox]:checked').forEach(e=>{S.own[+e.dataset.i]=e.dataset.s=='a'?b:a});
+S.pl[a].m+=cb-ca;S.pl[b].m+=ca-cb;log(`${S.pl[a].n} ⇄ ${S.pl[b].n} แลกเปลี่ยนสำเร็จ`);closeM();render()}
+function info(i){const p=P[i];if(!p)return modal(`<h3>${SP[i][0]} ${SP[i][1]}</h3>${X}`);const g=p[1],o=S.own[i];
+const rr=num(g)?['ค่าเช่า','1 บ้าน','2 บ้าน','3 บ้าน','4 บ้าน','โรงแรม'].map((n,k)=>`${n}: ฿${bs(p[0])*[1,5,15,45,62,75][k]}`).join('<br>')+`<br>สร้างบ้านหลังละ ฿${hc(g)}`:g=='s'?'ค่าเช่า ฿25 / 50 / 100 / 200 ตามจำนวนสถานี':'ค่าเช่า = แต้มเต๋า × 4 (มีครบ 2 แห่ง × 10)';
+modal(`<h3>${nm(i)} • ฿${p[0]}</h3><p>เจ้าของ: ${o!=null?S.pl[o].n+(S.mort[i]?' (จำนอง)':''):'ธนาคาร'}</p><p>${rr}</p><p>จำนอง รับ ฿${p[0]/2}</p>${X}`)}
+rSetup();
+</script></body></html>
